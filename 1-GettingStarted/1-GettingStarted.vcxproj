@@ -42,7 +42,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
-    <CharacterSet>MultiByte</CharacterSet>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -127,12 +127,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="helloTriangle-exercise.h" />
     <ClInclude Include="helloTriangle.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\common\glad\glad.c" />
     <ClCompile Include="..\common\openglDraw.cpp" />
-    <ClCompile Include="helloTriangle.cpp" />
+    <ClCompile Include="helloTriangle-exercise.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
