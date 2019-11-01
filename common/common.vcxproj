@@ -128,6 +128,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="openglDraw.h" />
+    <ClInclude Include="shader_s.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="glad\glad.c" />
