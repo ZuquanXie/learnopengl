@@ -1,4 +1,12 @@
-#include "helloTriangle.h"
+#include <iostream>
+#include "ContextProvider.h"
+
+void init();
+void draw();
+void remove();
+
+const unsigned int SCR_WIDTH = 800;
+const unsigned int SCR_HEIGHT = 600;
 
 // 顶点着色器源码
 const char* vertexShaderSource =
@@ -22,7 +30,18 @@ const char* fragmentShaderSource =
 GLuint vertexShader, fragmentShader, shaderProgram;
 GLuint VAO, VBO, EBO;
 
-void initHelloTriangle()
+int main()
+{
+	int result;
+
+	setScreenSize(SCR_WIDTH, SCR_HEIGHT);
+	result = contextProvider(init, draw, remove);
+
+	return result;
+}
+
+
+void init()
 {
 	int success;
 	char infoLog[512];
@@ -103,7 +122,7 @@ void initHelloTriangle()
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
-void drawHelloTriangle()
+void draw()
 {
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -114,7 +133,7 @@ void drawHelloTriangle()
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-void removeHelloTriangle()
+void remove()
 {
 	glDeleteBuffers(1, &VBO);
 	glDeleteBuffers(1, &EBO);

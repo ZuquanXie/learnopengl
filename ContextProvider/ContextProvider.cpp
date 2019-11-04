@@ -1,4 +1,4 @@
-#include "openglDraw.h"
+#include "ContextProvider.h"
 
 void framebuffer_resize_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
@@ -16,7 +16,7 @@ void setScreenSize(unsigned int width, unsigned int height)
 		glViewport(0, 0, width, height);
 }
 
-int openglDraw(hookFn beforeDraw, hookFn draw, hookFn beforeClose)
+int contextProvider(hookFn beforeDraw, hookFn draw, hookFn beforeClose)
 {
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
