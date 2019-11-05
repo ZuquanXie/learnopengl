@@ -43,14 +43,14 @@ int contextProvider(hookFn beforeDraw, hookFn draw, hookFn beforeClose)
 	}
 	initilized = 1;
 
-	beforeDraw();
+	beforeDraw(window);
 
 	while (!glfwWindowShouldClose(window))
 	{
 		// 用户输入
 		processInput(window);
 
-		draw();
+		draw(window);
 
 		// 交换缓冲
 		glfwSwapBuffers(window);
@@ -58,7 +58,7 @@ int contextProvider(hookFn beforeDraw, hookFn draw, hookFn beforeClose)
 		glfwPollEvents();
 	}
 
-	beforeClose();
+	beforeClose(window);
 
 	glfwTerminate();
 

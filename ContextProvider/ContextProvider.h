@@ -5,7 +5,7 @@
 #ifndef CONTEXTPROVIDER_H
 #define CONTEXTPROVIDER_H
 
-typedef void (*hookFn)();
+typedef void (*hookFn)(GLFWwindow* window);
 void setScreenSize(unsigned int width, unsigned int height);
 int contextProvider(hookFn beforeDraw, hookFn draw, hookFn beforeClose);
 

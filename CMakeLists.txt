@@ -8,6 +8,9 @@ link_directories("${PROJECT_SOURCE_DIR}/lib")
 list(APPEND EXTRA_SOURCES "${PROJECT_SOURCE_DIR}/include/glad/glad.c")
 list(APPEND EXTRA_LIBS glfw3)
 
+# stb_image
+list(APPEND EXTRA_SOURCES "${PROJECT_SOURCE_DIR}/include/stb/stb_image.cpp")
+
 # ContextProvider
 add_subdirectory(ContextProvider)
 list(APPEND EXTRA_LIBS ContextProvider)
@@ -24,5 +27,5 @@ target_link_libraries(LearnOpengl PUBLIC ${EXTRA_LIBS})
 
 # copy shader source files to build directory
 add_custom_command(TARGET LearnOpengl POST_BUILD
-	COMMAND ${PROJECT_SOURCE_DIR}/copyShaderSource ARGS ${PROJECT_SOURCE_DIR}/shaderSource ${PROJECT_BINARY_DIR}/shaderSource
+	COMMAND ${PROJECT_SOURCE_DIR}/copyResource ARGS ${PROJECT_SOURCE_DIR}/resource ${PROJECT_BINARY_DIR}/resource
 )

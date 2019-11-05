@@ -14,7 +14,7 @@ IF NOT EXIST %BDIR% (
 	ECHO Create directory %BDIR%
 )
 :: 拷贝资源文件
-FOR /R %SDIR% %%i IN (*s) DO (
+FOR /R %SDIR% %%i IN (*) DO (
 	COPY %%i %BDIR% >NUL
 	ECHO Create source file %BDIR%\%%~NXi 
 ) 
