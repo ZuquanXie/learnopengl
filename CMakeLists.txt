@@ -23,6 +23,6 @@ target_include_directories(LearnOpengl PUBLIC ${EXTRA_INCLUDES})
 target_link_libraries(LearnOpengl PUBLIC ${EXTRA_LIBS})
 
 # copy shader source files to build directory
-add_custom_command(TARGET LearnOpengl PRE_BUILD
-	COMMAND "${PROJECT_SOURCE_DIR}/copyShaderSource" ARGS ${PROJECT_SOURCE_DIR}
+add_custom_command(TARGET LearnOpengl POST_BUILD
+	COMMAND ${PROJECT_SOURCE_DIR}/copyShaderSource ARGS ${PROJECT_SOURCE_DIR}/shaderSource ${PROJECT_BINARY_DIR}/shaderSource
 )
