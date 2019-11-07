@@ -2,6 +2,9 @@
 #include <ContextProvider.h>
 #include <shader.h>
 #include <stb/stb_image.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 void init(GLFWwindow* w);
 void draw(GLFWwindow* w);
@@ -12,8 +15,8 @@ const unsigned int SCR_HEIGHT = 600;
 
 GLuint programId;
 GLuint VAO, VBO, EBO;
-GLuint tex1, tex2;
-GLfloat mixRatio = 0.3f;
+GLuint texture;
+glm::mat4 transformMatrix;
 
 int main()
 {
@@ -73,8 +76,8 @@ void init(GLFWwindow* window)
 
     // 设置纹理
     int width, height, nrChannels;
-    glGenTextures(1, &tex1);
-    glBindTexture(GL_TEXTURE_2D, tex1);
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -91,27 +94,11 @@ void init(GLFWwindow* window)
         std::cout << "LOAD TEXTURE IMAGE FAILED" << std::endl;
     }
     stbi_image_free(imgData);
-    glGenTextures(1, &tex2);
-    glBindTexture(GL_TEXTURE_2D, tex2);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    imgData = stbi_load("./resource/forbidden.png", &width, &height, &nrChannels, 0);
-    if (imgData)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imgData);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-        std::cout << "LOAD TEXTURE IMAGE FAILED" << std::endl;
-    }
-    stbi_image_free(imgData);
     shaderProgram.use();
-    glUniform1i(glGetUniformLocation(shaderProgram.ID, "aTexture1"), 0);
-    glUniform1i(glGetUniformLocation(shaderProgram.ID, "aTexture2"), 1);
-    glUniform1f(glGetUniformLocation(shaderProgram.ID, "mixRatio"), mixRatio);
+    glUniform1i(glGetUniformLocation(shaderProgram.ID, "aTexture"), 0);
+
+    // set transform matrix
+    transformMatrix = glm::mat4(1.0f);
 
 	// set draw mode
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -126,24 +113,21 @@ void draw(GLFWwindow* window)
 
         glUseProgram(programId);
 
-        // 根据上下键设置两个纹理的混合比例
+        // 根据上下键绕x轴旋转
         if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
         {
-            mixRatio = 0.8;
-            glUniform1f(glGetUniformLocation(programId, "mixRatio"), mixRatio);
+            transformMatrix = glm::rotate(transformMatrix, glm::radians(1.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         }
-        else if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+        if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
         {
-            mixRatio = 0.3;
-            glUniform1f(glGetUniformLocation(programId, "mixRatio"), mixRatio);
+            transformMatrix = glm::rotate(transformMatrix, glm::radians(-1.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         }
+        glUniformMatrix4fv(glGetUniformLocation(programId, "transformMatrix"), 1, GL_FALSE, glm::value_ptr(transformMatrix));
 
 		glBindVertexArray(VAO);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, tex1);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, tex2);
+        glBindTexture(GL_TEXTURE_2D, texture);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 

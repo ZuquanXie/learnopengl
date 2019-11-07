@@ -19,8 +19,6 @@ public:
 		std::string vString, fString;
 		const char* vCode;
 		const char* fCode;
-		GLint success;
-		GLchar* infolog;
 
 		// read shader source
 		vFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
