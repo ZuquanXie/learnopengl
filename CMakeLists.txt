@@ -19,13 +19,18 @@ list(APPEND EXTRA_INCLUDES "${PROJECT_SOURCE_DIR}/ContextProvider")
 # Shader class
 list(APPEND EXTRA_INCLUDES "${PROJECT_SOURCE_DIR}/Shader")
 
-add_executable(LearnOpengl main.cpp ${EXTRA_SOURCES})
+# main.exe
+add_executable(main main.cpp ${EXTRA_SOURCES})
 
-target_include_directories(LearnOpengl PUBLIC ${EXTRA_INCLUDES})
+target_include_directories(main PUBLIC ${EXTRA_INCLUDES})
 
-target_link_libraries(LearnOpengl PUBLIC ${EXTRA_LIBS})
+target_link_libraries(main PUBLIC ${EXTRA_LIBS})
 
 # copy shader source files to build directory
-add_custom_command(TARGET LearnOpengl POST_BUILD
+add_custom_command(TARGET main POST_BUILD
 	COMMAND ${PROJECT_SOURCE_DIR}/copyResource ARGS ${PROJECT_SOURCE_DIR}/resource ${PROJECT_BINARY_DIR}/resource
 )
+
+# test.exe
+add_executable(test test.cpp)
+target_include_directories(test PUBLIC ${EXTRAL_INCLUDES})
