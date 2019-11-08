@@ -16,7 +16,9 @@ const unsigned int SCR_HEIGHT = 600;
 GLuint programId;
 GLuint VAO, VBO, EBO;
 GLuint texture;
-glm::mat4 transformMatrix;
+glm::mat4 modelMatrix;
+glm::mat4 viewMatrix;
+glm::mat4 projectionMatrix;
 
 int main()
 {
@@ -30,7 +32,7 @@ int main()
 
 void init(GLFWwindow* window)
 {
-    Shader shaderProgram("./resource/vertex.vs", "./resource/fragment.fs");
+    Shader shaderProgram("./resource/vertex.vert", "./resource/fragment.frag");
     programId = shaderProgram.ID;
 
 	// Vertex Data
@@ -97,8 +99,14 @@ void init(GLFWwindow* window)
     shaderProgram.use();
     glUniform1i(glGetUniformLocation(shaderProgram.ID, "aTexture"), 0);
 
-    // set transform matrix
-    transformMatrix = glm::mat4(1.0f);
+    // set matrix
+    modelMatrix = glm::mat4(1.0f);
+    viewMatrix = glm::mat4(1.0f);
+    viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, -4.0f));
+    projectionMatrix = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "modelMatrix"), 1, GL_FALSE, glm::value_ptr(modelMatrix));
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "viewMatrix"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "projectionMatrix"), 1, GL_FALSE, glm::value_ptr(projectionMatrix));
 
 	// set draw mode
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -113,16 +121,28 @@ void draw(GLFWwindow* window)
 
         glUseProgram(programId);
 
-        // 根据上下键绕x轴旋转
+        // 上下键z轴前后移动
+        glm::vec3 p = glm::vec3(1.0f, 1.0f, 0.0f);
         if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
         {
-            transformMatrix = glm::rotate(transformMatrix, glm::radians(1.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+            viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, 1.0f));
         }
         if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
         {
-            transformMatrix = glm::rotate(transformMatrix, glm::radians(-1.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+            viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, -1.0f));
         }
-        glUniformMatrix4fv(glGetUniformLocation(programId, "transformMatrix"), 1, GL_FALSE, glm::value_ptr(transformMatrix));
+        // 左右键Y轴左右旋转
+        if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+        {
+            viewMatrix = glm::rotate(viewMatrix, glm::radians(1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        }
+        if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+        {
+            viewMatrix = glm::rotate(viewMatrix, glm::radians(-1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        }
+        glUniformMatrix4fv(glGetUniformLocation(programId, "modelMatrix"), 1, GL_FALSE, glm::value_ptr(modelMatrix));
+        glUniformMatrix4fv(glGetUniformLocation(programId, "viewMatrix"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
+        glUniformMatrix4fv(glGetUniformLocation(programId, "projectionMatrix"), 1, GL_FALSE, glm::value_ptr(projectionMatrix));
 
 		glBindVertexArray(VAO);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
