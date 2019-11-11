@@ -11,6 +11,8 @@ void init(GLFWwindow* w);
 void draw(GLFWwindow* w);
 void remove(GLFWwindow* w);
 void processKeyAction(GLFWwindow* w);
+void mouseInputCallback(GLFWwindow* w, double x, double y);
+void mouseScrollCallback(GLFWwindow* w, double x, double y);
 
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
@@ -22,9 +24,14 @@ glm::mat4 modelMatrix;
 glm::mat4 viewMatrix;
 glm::mat4 projectionMatrix;
 glm::vec3 cameraPosition;
-glm::vec3 cameraLookAt;
 glm::vec3 cameraUp;
 glm::vec3 cameraFront;
+bool mouseFirst = true;
+float pitch = 0;
+float yaw = -90.0f;
+double lastMX = (double)SCR_WIDTH / 2;
+double lastMY = (double)SCR_HEIGHT / 2;
+float fov = 45.0f;
 
 int main()
 {
@@ -109,31 +116,23 @@ void init(GLFWwindow* window)
     modelMatrix = glm::mat4(1.0f);
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "modelMatrix"), 1, GL_FALSE, glm::value_ptr(modelMatrix));
 
-    // viewMatrix(camera)
-    cameraPosition = glm::vec3(0.0f, 2.0f, 3.0f);
-    cameraLookAt = glm::vec3(0.0f, 0.0f, 0.0f);
+    // camera
+    cameraPosition = glm::vec3(0.0f, 0.0f, 20.0f);
+    glm::vec3 cameraLookAt = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 toCamera = glm::normalize(cameraPosition - cameraLookAt);
     glm::vec3 cameraRight  = glm::normalize(glm::cross(toCamera, glm::vec3(0.0f, 1.0f, 0.0f)));
     cameraUp = glm::cross(cameraRight, toCamera);
     cameraFront = -toCamera;
-    viewMatrix = glm::lookAt(cameraPosition, cameraLookAt, cameraUp);
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "viewMatrix"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
-    std::cout << "Position: ";
-    printFloatVec(3, &cameraPosition[0]);
-    std::cout << "Front: ";
-    printFloatVec(3, &cameraFront[0]);
-    std::cout << "Up: ";
-    printFloatVec(3, &cameraUp[0]);
-
-    // projection matrix
-    projectionMatrix = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "projectionMatrix"), 1, GL_FALSE, glm::value_ptr(projectionMatrix));
-
 
 	// set draw mode
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glEnable(GL_DEPTH_TEST);
+
+    // mouse event
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouseInputCallback);
+    glfwSetScrollCallback(window, mouseScrollCallback);
 }
 
 float deltaTime;
@@ -156,12 +155,15 @@ void draw(GLFWwindow* window)
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
 
-
         glUseProgram(programId);
 
         // view
         viewMatrix = glm::lookAt(cameraPosition, cameraFront + cameraPosition, cameraUp);
         glUniformMatrix4fv(glGetUniformLocation(programId, "viewMatrix"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
+
+        // projection
+        projectionMatrix = glm::perspective(glm::radians(fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glUniformMatrix4fv(glGetUniformLocation(programId, "projectionMatrix"), 1, GL_FALSE, glm::value_ptr(projectionMatrix));
 
 		glBindVertexArray(VAO);
         // first picture
@@ -216,4 +218,45 @@ void printFloatVec(unsigned int d, float* vec)
         i++;
     }
     std::cout << std::endl;
+}
+
+void mouseInputCallback(GLFWwindow* window, double x, double y)
+{
+    if (mouseFirst)
+    {
+        lastMX = x;
+        lastMY = y;
+        mouseFirst = false;
+        std::cout << "mousePosition: " << x << " ," << y << std::endl;
+    }
+
+    float sensitivity = 0.1f;
+    pitch += (float)(lastMY - y) * sensitivity;
+    yaw += (float)(x - lastMX) * sensitivity;
+    lastMX = x;
+    lastMY = y;
+
+    if (pitch > 89.0)
+    {
+        pitch = 89.0;
+    }
+    if (pitch < -89.0)
+    {
+        pitch = -89.0;
+    }
+
+    glm::vec3  front;
+    front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    front.y = sin(glm::radians(pitch));
+    front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    cameraFront = glm::normalize(front);
+}
+
+void mouseScrollCallback(GLFWwindow* window, double x, double y)
+{
+    fov -= (float)y;
+    if (fov < 1.0f)
+        fov = 1.0f;
+    if (fov > 45.0f)
+        fov = 45.0f;
 }
