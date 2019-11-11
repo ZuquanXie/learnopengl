@@ -6,9 +6,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+void printFloatVec(unsigned int d, float* vec);
 void init(GLFWwindow* w);
 void draw(GLFWwindow* w);
 void remove(GLFWwindow* w);
+void processKeyAction(GLFWwindow* w);
 
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
@@ -19,6 +21,10 @@ GLuint texture;
 glm::mat4 modelMatrix;
 glm::mat4 viewMatrix;
 glm::mat4 projectionMatrix;
+glm::vec3 cameraPosition;
+glm::vec3 cameraLookAt;
+glm::vec3 cameraUp;
+glm::vec3 cameraFront;
 
 int main()
 {
@@ -104,11 +110,20 @@ void init(GLFWwindow* window)
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "modelMatrix"), 1, GL_FALSE, glm::value_ptr(modelMatrix));
 
     // viewMatrix(camera)
-    glm::vec3 cameraPosition = glm::vec3(-1.0f, 2.0f, 3.0f);
-    glm::vec3 lookAtPosition = glm::vec3(0.0f, 0.0f, 0.0f);
-    glm::vec3 upVector = glm::vec3(0.0f, 1.0f, 0.0f);
-    viewMatrix = glm::lookAt(cameraPosition, lookAtPosition, upVector);
+    cameraPosition = glm::vec3(0.0f, 2.0f, 3.0f);
+    cameraLookAt = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 toCamera = glm::normalize(cameraPosition - cameraLookAt);
+    glm::vec3 cameraRight  = glm::normalize(glm::cross(toCamera, glm::vec3(0.0f, 1.0f, 0.0f)));
+    cameraUp = glm::cross(cameraRight, toCamera);
+    cameraFront = -toCamera;
+    viewMatrix = glm::lookAt(cameraPosition, cameraLookAt, cameraUp);
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "viewMatrix"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
+    std::cout << "Position: ";
+    printFloatVec(3, &cameraPosition[0]);
+    std::cout << "Front: ";
+    printFloatVec(3, &cameraFront[0]);
+    std::cout << "Up: ";
+    printFloatVec(3, &cameraUp[0]);
 
     // projection matrix
     projectionMatrix = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -121,8 +136,19 @@ void init(GLFWwindow* window)
     glEnable(GL_DEPTH_TEST);
 }
 
+float deltaTime;
+float lastFrame = (float)glfwGetTime();
 void draw(GLFWwindow* window)
 {
+        // delta time
+        float currentFrame = (float)glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        // key input
+        processKeyAction(window);
+
+        // clear
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -133,12 +159,8 @@ void draw(GLFWwindow* window)
 
         glUseProgram(programId);
 
-        // rotate view with time
-        float time = (float)glfwGetTime();
-        float radius = 5;
-        float x = glm::sin(time) * radius;
-        float z = glm::cos(time) * radius;
-        viewMatrix = glm::lookAt(glm::vec3(x, 2.0f, z), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        // view
+        viewMatrix = glm::lookAt(cameraPosition, cameraFront + cameraPosition, cameraUp);
         glUniformMatrix4fv(glGetUniformLocation(programId, "viewMatrix"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
 
 		glBindVertexArray(VAO);
@@ -158,4 +180,40 @@ void remove(GLFWwindow* window)
 {
 	glDeleteBuffers(1, &VBO);
 	glDeleteBuffers(1, &EBO);
+}
+
+void processKeyAction(GLFWwindow* window)
+{
+    float speed = 7.0f * deltaTime;
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    { 
+        cameraPosition += cameraFront * speed;
+    }
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    {
+        cameraPosition -= cameraFront * speed;
+    }
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    {
+        cameraPosition -= glm::cross(cameraFront, cameraUp) * speed;
+    }
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    {
+        cameraPosition += glm::cross(cameraFront, cameraUp) * speed;
+    }
+}
+
+void printFloatVec(unsigned int d, float* vec)
+{
+    unsigned int i;
+
+    i = 0;
+    while (i < d)
+    {
+        std::cout << *vec << " ";
+        vec++;
+        i++;
+    }
+    std::cout << std::endl;
 }
