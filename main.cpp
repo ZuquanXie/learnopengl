@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <camera.h>
 
 void printFloatVec(unsigned int d, float* vec);
 void init(GLFWwindow* w);
@@ -17,21 +18,18 @@ void mouseScrollCallback(GLFWwindow* w, double x, double y);
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
-GLuint programId;
+Shader shaderProgram;
 GLuint VAO, VBO, EBO;
 GLuint texture;
 glm::mat4 modelMatrix;
-glm::mat4 viewMatrix;
 glm::mat4 projectionMatrix;
-glm::vec3 cameraPosition;
-glm::vec3 cameraUp;
-glm::vec3 cameraFront;
+
+Camera camera;
+float deltaTime;
+float lastFrame = (float)glfwGetTime();
 bool mouseFirst = true;
-float pitch = 0;
-float yaw = -90.0f;
 double lastMX = (double)SCR_WIDTH / 2;
 double lastMY = (double)SCR_HEIGHT / 2;
-float fov = 45.0f;
 
 int main()
 {
@@ -45,8 +43,8 @@ int main()
 
 void init(GLFWwindow* window)
 {
-    Shader shaderProgram("./resource/vertex.vert", "./resource/fragment.frag");
-    programId = shaderProgram.ID;
+    shaderProgram = Shader("./resource/vertex.vert", "./resource/fragment.frag");
+
 
 	// Vertex Data
 	float vertices[] = {
@@ -117,12 +115,7 @@ void init(GLFWwindow* window)
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "modelMatrix"), 1, GL_FALSE, glm::value_ptr(modelMatrix));
 
     // camera
-    cameraPosition = glm::vec3(0.0f, 0.0f, 20.0f);
-    glm::vec3 cameraLookAt = glm::vec3(0.0f, 0.0f, 0.0f);
-    glm::vec3 toCamera = glm::normalize(cameraPosition - cameraLookAt);
-    glm::vec3 cameraRight  = glm::normalize(glm::cross(toCamera, glm::vec3(0.0f, 1.0f, 0.0f)));
-    cameraUp = glm::cross(cameraRight, toCamera);
-    cameraFront = -toCamera;
+    camera = Camera(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 	// set draw mode
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -135,8 +128,6 @@ void init(GLFWwindow* window)
     glfwSetScrollCallback(window, mouseScrollCallback);
 }
 
-float deltaTime;
-float lastFrame = (float)glfwGetTime();
 void draw(GLFWwindow* window)
 {
         // delta time
@@ -155,26 +146,31 @@ void draw(GLFWwindow* window)
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
 
-        glUseProgram(programId);
+        glUseProgram(shaderProgram.ID);
 
         // view
-        viewMatrix = glm::lookAt(cameraPosition, cameraFront + cameraPosition, cameraUp);
-        glUniformMatrix4fv(glGetUniformLocation(programId, "viewMatrix"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
+        glm::mat4 viewMatrix = camera.GetViewMatrix();
+        glUniformMatrix4fv(
+            glGetUniformLocation(shaderProgram.ID, "viewMatrix"),
+            1,
+            GL_FALSE,
+            glm::value_ptr(viewMatrix)
+        );
 
         // projection
-        projectionMatrix = glm::perspective(glm::radians(fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        glUniformMatrix4fv(glGetUniformLocation(programId, "projectionMatrix"), 1, GL_FALSE, glm::value_ptr(projectionMatrix));
+        projectionMatrix = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "projectionMatrix"), 1, GL_FALSE, glm::value_ptr(projectionMatrix));
 
 		glBindVertexArray(VAO);
         // first picture
         modelMatrix = glm::mat4(1.0f);
         modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, 1.0f));
-        glUniformMatrix4fv(glGetUniformLocation(programId, "modelMatrix"), 1, GL_FALSE, &modelMatrix[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "modelMatrix"), 1, GL_FALSE, &modelMatrix[0][0]);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         // second picture
         modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, -1.0f));
-        glUniformMatrix4fv(glGetUniformLocation(programId, "modelMatrix"), 1, GL_FALSE, &modelMatrix[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "modelMatrix"), 1, GL_FALSE, &modelMatrix[0][0]);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
@@ -186,23 +182,21 @@ void remove(GLFWwindow* window)
 
 void processKeyAction(GLFWwindow* window)
 {
-    float speed = 7.0f * deltaTime;
-
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
     { 
-        cameraPosition += cameraFront * speed;
+        camera.ProcessMove(Camera_Movement::FORWARD, deltaTime);
     }
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
     {
-        cameraPosition -= cameraFront * speed;
+        camera.ProcessMove(Camera_Movement::BACKWARD, deltaTime);
     }
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
     {
-        cameraPosition -= glm::cross(cameraFront, cameraUp) * speed;
+        camera.ProcessMove(Camera_Movement::LEFT, deltaTime);
     }
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
     {
-        cameraPosition += glm::cross(cameraFront, cameraUp) * speed;
+        camera.ProcessMove(Camera_Movement::RIGHT, deltaTime);
     }
 }
 
@@ -227,36 +221,13 @@ void mouseInputCallback(GLFWwindow* window, double x, double y)
         lastMX = x;
         lastMY = y;
         mouseFirst = false;
-        std::cout << "mousePosition: " << x << " ," << y << std::endl;
     }
-
-    float sensitivity = 0.1f;
-    pitch += (float)(lastMY - y) * sensitivity;
-    yaw += (float)(x - lastMX) * sensitivity;
+    camera.ProcessMouseMove((float)(x - lastMX), (float)(y - lastMY));
     lastMX = x;
     lastMY = y;
-
-    if (pitch > 89.0)
-    {
-        pitch = 89.0;
-    }
-    if (pitch < -89.0)
-    {
-        pitch = -89.0;
-    }
-
-    glm::vec3  front;
-    front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-    front.y = sin(glm::radians(pitch));
-    front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-    cameraFront = glm::normalize(front);
 }
 
 void mouseScrollCallback(GLFWwindow* window, double x, double y)
 {
-    fov -= (float)y;
-    if (fov < 1.0f)
-        fov = 1.0f;
-    if (fov > 45.0f)
-        fov = 45.0f;
+    camera.ProcessScroll((float)x, (float)y);
 }

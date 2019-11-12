@@ -10,7 +10,12 @@
 
 class Shader {
 public:
-	unsigned int ID;
+    unsigned int ID;
+
+    Shader()
+    {
+        ID = 0;
+    }
 
 	Shader(GLchar* vShaderPath, GLchar* fShaderPath)
 	{

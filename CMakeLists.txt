@@ -19,6 +19,9 @@ list(APPEND EXTRA_INCLUDES "${PROJECT_SOURCE_DIR}/ContextProvider")
 # Shader class
 list(APPEND EXTRA_INCLUDES "${PROJECT_SOURCE_DIR}/Shader")
 
+# Camera class
+list(APPEND EXTRA_INCLUDES "${PROJECT_SOURCE_DIR}/Camera")
+
 # main.exe
 add_executable(main main.cpp ${EXTRA_SOURCES})
 
