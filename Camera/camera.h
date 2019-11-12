@@ -49,9 +49,33 @@ public:
         updateVector();
     }
 
+    glm::mat4 LookAt(glm::vec3 position, glm::vec3 center, glm::vec3 worldUp)
+    {
+        glm::mat4 rotation = glm::mat4(1.0f);
+        glm::mat4 translation = glm::mat4(1.0f);
+
+        glm::vec3 direction = glm::normalize(position - center);
+        glm::vec3 right = glm::normalize(glm::cross(glm::normalize(worldUp), direction));
+        glm::vec3 up = glm::normalize(glm::cross(direction, right));
+        rotation[0][0] = right.x;
+        rotation[0][1] = right.y;
+        rotation[0][2] = right.z;
+        rotation[1][0] = up.x;
+        rotation[1][1] = up.y;
+        rotation[1][2] = up.z;
+        rotation[2][0] = direction.x;
+        rotation[2][1] = direction.y;
+        rotation[2][2] = direction.z;
+        translation[3][0] = -position.x;
+        translation[3][1] = -position.y;
+        translation[3][2] = -position.z;
+
+        return rotation * translation;
+    }
+
     glm::mat4 GetViewMatrix()
     {
-        return glm::lookAt(Position, Position + Front, Up);
+        return LookAt(Position, Position + Front, WorldUp);
     }
 
     void ProcessMove(Camera_Movement direction, float deltaTime)
@@ -77,7 +101,7 @@ public:
     void ProcessMouseMove(float dx, float dy)
     {
         Pitch -= dy * Sensitivity;
-        Yaw -= dx * Sensitivity;
+        Yaw += dx * Sensitivity;
 
         if (Pitch > 89.0f)
             Pitch = 89.0f;
