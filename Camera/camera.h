@@ -9,7 +9,7 @@ const float PITCH = 0.0f;
 const float YAW = 0.0f;
 
 const float MOVEMENT_SPEED = 3.0f;
-const float SENSITIVITY = 0.01f;
+const float SENSITIVITY = 0.003f;
 const float ZOOM = 45.0f;
 
 enum class Camera_Movement {
@@ -36,11 +36,11 @@ public:
     float Zoom;
 
     Camera(
-        glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3 position = glm::vec3(0.0f, 0.0f, 5.0f),
         glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f),
         float pitch = PITCH,
         float yaw = YAW
-    ): Front(glm::vec3(0.0f, 0.0f, 1.0f)), MovementSpeed(MOVEMENT_SPEED), Sensitivity(SENSITIVITY), Zoom(ZOOM)
+    ): Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(MOVEMENT_SPEED), Sensitivity(SENSITIVITY), Zoom(ZOOM)
     {
         Position = position;
         WorldUp = up;
@@ -58,13 +58,13 @@ public:
         glm::vec3 right = glm::normalize(glm::cross(glm::normalize(worldUp), direction));
         glm::vec3 up = glm::normalize(glm::cross(direction, right));
         rotation[0][0] = right.x;
-        rotation[0][1] = right.y;
-        rotation[0][2] = right.z;
-        rotation[1][0] = up.x;
+        rotation[1][0] = right.y;
+        rotation[2][0] = right.z;
+        rotation[0][1] = up.x;
         rotation[1][1] = up.y;
-        rotation[1][2] = up.z;
-        rotation[2][0] = direction.x;
-        rotation[2][1] = direction.y;
+        rotation[2][1] = up.z;
+        rotation[0][2] = direction.x;
+        rotation[1][2] = direction.y;
         rotation[2][2] = direction.z;
         translation[3][0] = -position.x;
         translation[3][1] = -position.y;
@@ -125,9 +125,9 @@ private:
     void updateVector()
     {
         glm::vec3 front;
-        front.x = cos(Pitch) * sin(Yaw);
+        front.x = sin(Yaw) * cos(Pitch);
         front.y = sin(Pitch);
-        front.z = cos(Pitch) * cos(Yaw);
+        front.z = -cos(Yaw) * cos(Pitch);
         Front = glm::normalize(front);
         Right = glm::normalize(glm::cross(Front, WorldUp));
         Up = glm::normalize(glm::cross(Right, Front));
