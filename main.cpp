@@ -47,17 +47,22 @@ void init(GLFWwindow* window)
 
 
 	// Vertex Data
-	float vertices[] = {
-		-0.5f, 0.5f, 0.0f,    1.0f, 0.0f, 0.0f,   0.0f, 1.0f, // top left
-		0.5f, 0.5f, 0.0f,      0.0f, 1.0f, 0.0f,   1.0f, 1.0f, // top right
-		0.5f, -0.5f, 0.0f,    0.0f, 0.0f, 1.0f,   1.0f, 0.0f, // bottom right
-		-0.5f, -0.5f, 0.0f,  1.0f, 1.0f, 0.0f,   0.0f, 0.0f, // bottom left
-	};
+    float vertices[] = {
+        // position            color                    texture position
+        0.0f, 0.0f, 1.0f,     1.0f, 1.0f, 1.0f,     0.0f, 0.0f, //front
+        1.0f, 0.0f, -1.0f,   1.0f, 1.0f, 1.0f,     0.0f, 0.0f,//back left1
+        0.3f, 0.0f, -1.0f,   1.0f, 1.0f, 1.0f,     0.0f, 0.0f,//back left2
+        -0.3f, 0.0f, -1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,//back right2
+        -1.0f, 0.0f, -1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,//back right1
+        0.0f, -0.3f, -1.0f, 0.8f, 0.8f, 0.8f,     0.0f, 0.0f,//back middle
+    };
 	// Vertex Index
-	unsigned int indices[] = {
-		0, 1, 2,
-		2, 3, 0
-	};
+    unsigned int indices[] = {
+        0, 1, 2,
+        0, 3, 4,
+        0, 2, 5,
+        0, 3, 5,
+    };
 
 	// VAO, VBO, EBO
 	glGenVertexArrays(1, &VAO);
@@ -115,7 +120,7 @@ void init(GLFWwindow* window)
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "modelMatrix"), 1, GL_FALSE, glm::value_ptr(modelMatrix));
 
     // camera
-    camera = Camera(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    camera = Camera(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 	// set draw mode
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -164,14 +169,8 @@ void draw(GLFWwindow* window)
 		glBindVertexArray(VAO);
         // first picture
         modelMatrix = glm::mat4(1.0f);
-        modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, 1.0f));
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "modelMatrix"), 1, GL_FALSE, &modelMatrix[0][0]);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-        // second picture
-        modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, -1.0f));
-        glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "modelMatrix"), 1, GL_FALSE, &modelMatrix[0][0]);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
 }
 
 void remove(GLFWwindow* window)
