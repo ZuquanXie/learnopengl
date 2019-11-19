@@ -22,6 +22,12 @@ list(APPEND EXTRA_INCLUDES "${PROJECT_SOURCE_DIR}/Shader")
 # Camera class
 list(APPEND EXTRA_INCLUDES "${PROJECT_SOURCE_DIR}/Camera")
 
+# AxisHelper class
+list(APPEND EXTRA_INCLUDES "${PROJECT_SOURCE_DIR}/AxisHelper")
+
+# Plane class
+list(APPEND EXTRA_INCLUDES "${PROJECT_SOURCE_DIR}/Plane")
+
 # main.exe
 add_executable(main main.cpp ${EXTRA_SOURCES})
 
@@ -34,6 +40,6 @@ add_custom_command(TARGET main POST_BUILD
 	COMMAND ${PROJECT_SOURCE_DIR}/copyResource ARGS ${PROJECT_SOURCE_DIR}/resource ${PROJECT_BINARY_DIR}/resource
 )
 
-# test.exe
-add_executable(test test.cpp)
-target_include_directories(test PUBLIC ${EXTRAL_INCLUDES})
+# playground.exe
+add_executable(playground playground.cpp)
+target_include_directories(playground PUBLIC ${EXTRAL_INCLUDES})

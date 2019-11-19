@@ -1,11 +1,12 @@
 #include <iostream>
 #include <ContextProvider.h>
-#include <shader.h>
 #include <stb/stb_image.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <camera.h>
+#include <AxisHelper.h>
+#include <Plane.h>
 
 void printFloatVec(unsigned int d, float* vec);
 void init(GLFWwindow* w);
@@ -18,11 +19,9 @@ void mouseScrollCallback(GLFWwindow* w, double x, double y);
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
-Shader shaderProgram;
-GLuint VAO, VBO, EBO;
+AxisHelper::AxisHelper axisHelper;
+Plane::Plane plane;
 GLuint texture;
-glm::mat4 modelMatrix;
-glm::mat4 projectionMatrix;
 
 Camera camera;
 float deltaTime;
@@ -43,56 +42,10 @@ int main()
 
 void init(GLFWwindow* window)
 {
-    shaderProgram = Shader("./resource/vertex.vert", "./resource/fragment.frag");
+    axisHelper = AxisHelper::AxisHelper(0.004f, 2.0f, 2.0f, 2.0f);
+    plane = Plane::Plane(2.0f, 0.3f, 1.0f);
 
-
-	// Vertex Data
-    float vertices[] = {
-        // position            color                    texture position
-        0.0f, 0.0f, 1.0f,     1.0f, 1.0f, 1.0f,     0.0f, 0.0f, //front
-        1.0f, 0.0f, -1.0f,   1.0f, 1.0f, 1.0f,     0.0f, 0.0f,//back left1
-        0.3f, 0.0f, -1.0f,   1.0f, 1.0f, 1.0f,     0.0f, 0.0f,//back left2
-        -0.3f, 0.0f, -1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,//back right2
-        -1.0f, 0.0f, -1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,//back right1
-        0.0f, -0.3f, -1.0f, 0.8f, 0.8f, 0.8f,     0.0f, 0.0f,//back middle
-    };
-	// Vertex Index
-    unsigned int indices[] = {
-        0, 1, 2,
-        0, 3, 4,
-        0, 2, 5,
-        0, 3, 5,
-    };
-
-	// VAO, VBO, EBO
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
-
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-	// 顶点
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-    // 颜色
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    // 纹理坐标
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-
-	// unbind
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-    // 设置纹理
+    // 创建纹理
     int width, height, nrChannels;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -112,12 +65,6 @@ void init(GLFWwindow* window)
         std::cout << "LOAD TEXTURE IMAGE FAILED" << std::endl;
     }
     stbi_image_free(imgData);
-    shaderProgram.use();
-    glUniform1i(glGetUniformLocation(shaderProgram.ID, "aTexture"), 0);
-
-    // model matrix
-    modelMatrix = glm::mat4(1.0f);
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "modelMatrix"), 1, GL_FALSE, glm::value_ptr(modelMatrix));
 
     // camera
     camera = Camera(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -143,40 +90,26 @@ void draw(GLFWwindow* window)
         // key input
         processKeyAction(window);
 
+        // view matrix
+        glm::mat4 viewMatrix = camera.GetViewMatrix();
+        // projection matrix
+        glm::mat4 projectionMatrix = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+
         // clear
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // bind texture
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture);
+        // axis
+        axisHelper.draw(&viewMatrix[0][0], &projectionMatrix[0][0]);
 
-        glUseProgram(shaderProgram.ID);
-
-        // view
-        glm::mat4 viewMatrix = camera.GetViewMatrix();
-        glUniformMatrix4fv(
-            glGetUniformLocation(shaderProgram.ID, "viewMatrix"),
-            1,
-            GL_FALSE,
-            glm::value_ptr(viewMatrix)
-        );
-
-        // projection
-        projectionMatrix = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "projectionMatrix"), 1, GL_FALSE, glm::value_ptr(projectionMatrix));
-
-		glBindVertexArray(VAO);
-        // first picture
-        modelMatrix = glm::mat4(1.0f);
-        glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "modelMatrix"), 1, GL_FALSE, &modelMatrix[0][0]);
-		glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
+        // plane
+        plane.draw(&viewMatrix[0][0], &projectionMatrix[0][0]);
 }
 
 void remove(GLFWwindow* window)
 {
-	glDeleteBuffers(1, &VBO);
-	glDeleteBuffers(1, &EBO);
+    axisHelper.remove();
+    plane.remove();
 }
 
 void processKeyAction(GLFWwindow* window)
