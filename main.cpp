@@ -5,8 +5,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <camera.h>
+#include <shader.h>
 #include <AxisHelper.h>
-#include <Plane.h>
 
 void printFloatVec(unsigned int d, float* vec);
 void init(GLFWwindow* w);
@@ -15,13 +15,10 @@ void remove(GLFWwindow* w);
 void processKeyAction(GLFWwindow* w);
 void mouseInputCallback(GLFWwindow* w, double x, double y);
 void mouseScrollCallback(GLFWwindow* w, double x, double y);
+void createCubeBuffers(GLuint &VBO, GLuint &EBO, float size);
 
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
-
-AxisHelper::AxisHelper axisHelper;
-Plane::Plane plane;
-GLuint texture;
 
 Camera camera;
 float deltaTime;
@@ -29,6 +26,21 @@ float lastFrame = (float)glfwGetTime();
 bool mouseFirst = true;
 double lastMX = (double)SCR_WIDTH / 2;
 double lastMY = (double)SCR_HEIGHT / 2;
+
+AxisHelper::AxisHelper axisHelper;
+
+// buffers
+GLuint cubeVBO, cubeEBO;
+
+// lamp
+GLuint lampVAO;
+glm::mat4 lampModel;
+Shader lamp;
+
+// actor
+GLuint actorVAO;
+glm::mat4 actorModel;
+Shader actor;
 
 int main()
 {
@@ -42,32 +54,38 @@ int main()
 
 void init(GLFWwindow* window)
 {
-    axisHelper = AxisHelper::AxisHelper(0.004f, 2.0f, 2.0f, 2.0f);
-    plane = Plane::Plane(2.0f, 0.3f, 1.0f);
-
-    // ¥¥Ω®Œ∆¿Ì
-    int width, height, nrChannels;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    stbi_set_flip_vertically_on_load(true);
-    unsigned char* imgData = stbi_load("./resource/huitailang.jpg", &width, &height, &nrChannels, 0);
-    if (imgData)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, imgData);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-        std::cout << "LOAD TEXTURE IMAGE FAILED" << std::endl;
-    }
-    stbi_image_free(imgData);
-
     // camera
-    camera = Camera(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    camera = Camera(glm::vec3(0.0f, 0.0f, 15.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    // axisHelper
+    axisHelper = AxisHelper::AxisHelper(0.004f, 2.0f, 2.0f, 2.0f);
+    // buffers
+    createCubeBuffers(cubeVBO, cubeEBO, 1.0f);
+    // actor
+    actor = Shader("./resource/myCube.vert", "./resource/myCube.frag");
+    actorModel = glm::mat4(1.0f);
+    glGenVertexArrays(1, &actorVAO);
+    glBindVertexArray(actorVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeEBO);
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    // lamp
+    lamp = Shader("./resource/myLamp.vert", "./resource/myLamp.frag");
+    lampModel = glm::mat4(1.0f);
+    lampModel = glm::translate(lampModel, glm::vec3(0, 5.0f, 0));
+    lampModel = glm::scale(lampModel, glm::vec3(0.3f, 0.3f, 0.3f));
+    glGenVertexArrays(1, &lampVAO);
+    glBindVertexArray(lampVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeEBO);
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 	// set draw mode
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -102,14 +120,29 @@ void draw(GLFWwindow* window)
         // axis
         axisHelper.draw(&viewMatrix[0][0], &projectionMatrix[0][0]);
 
-        // plane
-        plane.draw(&viewMatrix[0][0], &projectionMatrix[0][0]);
+        // lamp
+        lamp.use();
+        lamp.setMat4("model", &lampModel[0][0]);
+        lamp.setMat4("view", &viewMatrix[0][0]);
+        lamp.setMat4("projection", &projectionMatrix[0][0]);
+        glBindVertexArray(lampVAO);
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+        // actor
+        actor.use();
+        actor.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+        actor.setVec3("objectColor", 0.0f, 1.0f, 0.0f);
+        actor.setMat4("model", &actorModel[0][0]);
+        actor.setMat4("view", &viewMatrix[0][0]);
+        actor.setMat4("projection", &projectionMatrix[0][0]);
+        glBindVertexArray(actorVAO);
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
 }
 
 void remove(GLFWwindow* window)
 {
     axisHelper.remove();
-    plane.remove();
 }
 
 void processKeyAction(GLFWwindow* window)
@@ -162,4 +195,46 @@ void mouseInputCallback(GLFWwindow* window, double x, double y)
 void mouseScrollCallback(GLFWwindow* window, double x, double y)
 {
     camera.ProcessScroll((float)x, (float)y);
+}
+
+void createCubeBuffers(GLuint &VBO, GLuint &EBO, float size)
+{
+    float hl = size / 2;
+    float vertices[24] = {
+        -hl, hl, hl,
+        hl, hl, hl,
+        hl, -hl, hl,
+        -hl, -hl, hl,
+        -hl, hl, -hl,
+        hl, hl, -hl,
+        hl, -hl, -hl,
+        -hl, -hl, -hl
+    };
+    unsigned int indices[36] = {
+        // front
+        0, 1, 2,
+        0, 2, 3,
+        // back
+        5, 4, 7,
+        5, 6, 7,
+        // top
+        4, 5, 1,
+        4, 1, 0,
+        // bottom
+        2, 3, 6,
+        2, 6, 7,
+        // left
+        4, 0, 3,
+        4, 3, 7,
+        // right
+        1, 5, 6,
+        1, 6, 2
+    };
+
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glGenBuffers(1, &EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 }

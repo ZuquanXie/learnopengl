@@ -6,8 +6,11 @@
 #include <sstream>
 #include <iostream>
 #define SHADER_S_H
-#define INFO_LOG_LENGTH 512
 
+namespace ShaderConstants
+{
+    const unsigned int INFO_LOG_LENGTH = 512;
+}
 class Shader {
 public:
     unsigned int ID;
@@ -72,10 +75,48 @@ public:
 		glUseProgram(ID);
 	}
 
+    void setBool(const std::string &name, bool value)
+    {
+        glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
+    }
+
+    void setInt(const std::string &name, int value)
+    {
+        glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
+    }
+
+    void setFloat(const std::string &name, float value)
+    {
+        glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
+    }
+
+    void setVec3(const std::string &name, float x, float y, float z)
+    {
+        glUniform3f(glGetUniformLocation(ID, name.c_str()), x, y, z);
+    }
+    void setVec3(const std::string &name, float* vec3)
+    {
+        glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1, vec3);
+    }
+
+    void setVec4(const std::string &name, float x, float y, float z, float w)
+    {
+        glUniform4f(glGetUniformLocation(ID, name.c_str()), x, y, z, w);
+    }
+    void setVec4(const std::string &name, float* vec4)
+    {
+        glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1, vec4);
+    }
+
+    void setMat4(const std::string &name, float* mat4)
+    {
+        glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, mat4);
+    }
+
 private:
 	void checkCompile(unsigned int target, std::string type)
 	{
-		char infolog[INFO_LOG_LENGTH];
+		char infolog[ShaderConstants::INFO_LOG_LENGTH];
 		GLint success;
 
 		if (type == "SHADER")
@@ -83,7 +124,7 @@ private:
 			glGetShaderiv(target, GL_COMPILE_STATUS, &success);
 			if (!success)
 			{
-				glGetShaderInfoLog(target, INFO_LOG_LENGTH, NULL, infolog);
+				glGetShaderInfoLog(target, ShaderConstants::INFO_LOG_LENGTH, NULL, infolog);
 				std::cout << "SHADER::COMPILE_FAILED" << infolog << std::endl;
 			}
 		}
@@ -92,7 +133,7 @@ private:
 			glGetProgramiv(target, GL_LINK_STATUS, &success);
 			if (!success)
 			{
-				glGetProgramInfoLog(target, INFO_LOG_LENGTH, NULL, infolog);
+				glGetProgramInfoLog(target, ShaderConstants::INFO_LOG_LENGTH, NULL, infolog);
 				std::cout << "PROGRAM::LINK_FAILED" << infolog << std::endl;
 			}
 		}
