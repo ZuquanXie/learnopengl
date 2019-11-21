@@ -56,7 +56,7 @@ int main()
 void init(GLFWwindow* window)
 {
     // camera
-    camera = Camera(glm::vec3(0.0f, 0.0f, 15.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    camera = Camera(glm::vec3(0.0f, 0.0f, 4.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     // axisHelper
     axisHelper = AxisHelper::AxisHelper(0.004f, 2.0f, 2.0f, 2.0f);
     // buffers
@@ -124,6 +124,9 @@ void draw(GLFWwindow* window)
         axisHelper.draw(&viewMatrix[0][0], &projectionMatrix[0][0]);
 
         // lamp
+        lampPosition = glm::vec3(-sin(lastFrame), cos(lastFrame), cos(lastFrame));
+        lampModel = glm::translate(glm::mat4(1.0f), lampPosition);
+        lampModel = glm::scale(lampModel, glm::vec3(0.2f, 0.2f, 0.2f));
         lamp.use();
         lamp.setMat4("model", &lampModel[0][0]);
         lamp.setMat4("view", &viewMatrix[0][0]);
@@ -132,16 +135,15 @@ void draw(GLFWwindow* window)
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // actor
-        glm::mat3 modelForNormal = glm::mat3(glm::transpose(glm::inverse(actorModel)));
+        glm::mat3 viewForNormal = glm::mat3(glm::transpose(glm::inverse(viewMatrix * actorModel)));
         actor.use();
         actor.setVec3("lightPosition", &lampPosition[0]);
         actor.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
         actor.setVec3("objectColor", 0.0f, 1.0f, 0.0f);
-        actor.setVec3("viewerPosition", &camera.Position[0]);
         actor.setMat4("model", &actorModel[0][0]);
         actor.setMat4("view", &viewMatrix[0][0]);
         actor.setMat4("projection", &projectionMatrix[0][0]);
-        actor.setMat3("modelForNormal", &modelForNormal[0][0]);
+        actor.setMat3("viewForNormal", &viewForNormal[0][0]);
         glBindVertexArray(actorVAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0);
