@@ -15,7 +15,7 @@ void remove(GLFWwindow* w);
 void processKeyAction(GLFWwindow* w);
 void mouseInputCallback(GLFWwindow* w, double x, double y);
 void mouseScrollCallback(GLFWwindow* w, double x, double y);
-void createCubeBuffers(GLuint &VBO, GLuint &EBO, float size);
+void createCubeVBO(GLuint &VBO, float size);
 
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
@@ -30,11 +30,12 @@ double lastMY = (double)SCR_HEIGHT / 2;
 AxisHelper::AxisHelper axisHelper;
 
 // buffers
-GLuint cubeVBO, cubeEBO;
+GLuint cubeVBO;
 
 // lamp
 GLuint lampVAO;
 glm::mat4 lampModel;
+glm::vec3 lampPosition;
 Shader lamp;
 
 // actor
@@ -59,33 +60,35 @@ void init(GLFWwindow* window)
     // axisHelper
     axisHelper = AxisHelper::AxisHelper(0.004f, 2.0f, 2.0f, 2.0f);
     // buffers
-    createCubeBuffers(cubeVBO, cubeEBO, 1.0f);
+    createCubeVBO(cubeVBO, 1.0f);
     // actor
     actor = Shader("./resource/myCube.vert", "./resource/myCube.frag");
     actorModel = glm::mat4(1.0f);
+    actorModel = glm::rotate(actorModel, glm::radians(45.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     glGenVertexArrays(1, &actorVAO);
     glBindVertexArray(actorVAO);
     glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeEBO);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     // lamp
     lamp = Shader("./resource/myLamp.vert", "./resource/myLamp.frag");
+    lampPosition = glm::vec3(1.0f, 1.0f, 0.0f);
     lampModel = glm::mat4(1.0f);
-    lampModel = glm::translate(lampModel, glm::vec3(0, 5.0f, 0));
-    lampModel = glm::scale(lampModel, glm::vec3(0.3f, 0.3f, 0.3f));
+    lampModel = glm::translate(lampModel, lampPosition);
+    lampModel = glm::scale(lampModel, glm::vec3(0.2f));
     glGenVertexArrays(1, &lampVAO);
     glBindVertexArray(lampVAO);
     glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeEBO);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 	// set draw mode
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -126,17 +129,21 @@ void draw(GLFWwindow* window)
         lamp.setMat4("view", &viewMatrix[0][0]);
         lamp.setMat4("projection", &projectionMatrix[0][0]);
         glBindVertexArray(lampVAO);
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // actor
+        glm::mat3 modelForNormal = glm::mat3(glm::transpose(glm::inverse(actorModel)));
         actor.use();
+        actor.setVec3("lightPosition", &lampPosition[0]);
         actor.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
         actor.setVec3("objectColor", 0.0f, 1.0f, 0.0f);
+        actor.setVec3("viewerPosition", &camera.Position[0]);
         actor.setMat4("model", &actorModel[0][0]);
         actor.setMat4("view", &viewMatrix[0][0]);
         actor.setMat4("projection", &projectionMatrix[0][0]);
+        actor.setMat3("modelForNormal", &modelForNormal[0][0]);
         glBindVertexArray(actorVAO);
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0);
 }
 
@@ -197,44 +204,55 @@ void mouseScrollCallback(GLFWwindow* window, double x, double y)
     camera.ProcessScroll((float)x, (float)y);
 }
 
-void createCubeBuffers(GLuint &VBO, GLuint &EBO, float size)
+void createCubeVBO(GLuint &VBO,  float size)
 {
     float hl = size / 2;
-    float vertices[24] = {
-        -hl, hl, hl,
-        hl, hl, hl,
-        hl, -hl, hl,
-        -hl, -hl, hl,
-        -hl, hl, -hl,
-        hl, hl, -hl,
-        hl, -hl, -hl,
-        -hl, -hl, -hl
-    };
-    unsigned int indices[36] = {
-        // front
-        0, 1, 2,
-        0, 2, 3,
+    float vertices[6*6*6] = {
         // back
-        5, 4, 7,
-        5, 6, 7,
-        // top
-        4, 5, 1,
-        4, 1, 0,
-        // bottom
-        2, 3, 6,
-        2, 6, 7,
+        -hl, hl, -hl, 0.0f, 0.0f, -1.0f,
+        -hl, -hl, -hl, 0.0f, 0.0f, -1.0f,
+        hl, -hl, -hl, 0.0f, 0.0f, -1.0f,
+        -hl, hl, -hl, 0.0f, 0.0f, -1.0f,
+        hl, -hl, -hl, 0.0f, 0.0f, -1.0f,
+        hl, hl, -hl, 0.0f, 0.0f, -1.0f,
+        // front
+        hl, hl, hl, 0.0f, 0.0f, 1.0f,
+        hl, -hl, hl, 0.0f, 0.0f, 1.0f,
+        -hl, -hl, hl, 0.0f, 0.0f, 1.0f,
+        hl, hl, hl, 0.0f, 0.0f, 1.0f,
+        -hl, -hl, hl, 0.0f, 0.0f, 1.0f,
+        -hl, hl, hl, 0.0f, 0.0f, 1.0f,
         // left
-        4, 0, 3,
-        4, 3, 7,
+        -hl, hl, hl, -1.0f, 0.0f, 0.0f,
+        -hl, -hl, hl, -1.0f, 0.0f, 0.0f,
+        -hl, -hl, -hl, -1.0f, 0.0f, 0.0f,
+        -hl, hl, hl, -1.0f, 0.0f, 0.0f,
+        -hl, -hl, -hl, -1.0f, 0.0f, 0.0f,
+        -hl, hl, -hl, -1.0f, 0.0f, 0.0f,
         // right
-        1, 5, 6,
-        1, 6, 2
+        hl, hl, -hl, 1.0f, 0.0f, 0.0f,
+        hl, -hl, -hl, 1.0f, 0.0f, 0.0f,
+        hl, -hl, hl, 1.0f, 0.0f, 0.0f,
+        hl, hl, -hl, 1.0f, 0.0f, 0.0f,
+        hl, -hl, hl, 1.0f, 0.0f, 0.0f,
+        hl, hl, hl, 1.0f, 0.0f, 0.0f,
+        // top
+        hl, hl, -hl, 0.0f, 1.0f, 0.0f,
+        hl, hl, hl, 0.0f, 1.0f, 0.0f,
+        -hl, hl, hl, 0.0f, 1.0f, 0.0f,
+        hl, hl, -hl, 0.0f, 1.0f, 0.0f,
+        -hl, hl, hl, 0.0f, 1.0f, 0.0f,
+        -hl, hl, -hl, 0.0f, 1.0f, 0.0f,
+        // bottom
+        hl, -hl, hl, 0.0f, -1.0f, 0.0f,
+        hl, -hl, -hl, 0.0f, -1.0f, 0.0f,
+        -hl, -hl, -hl, 0.0f, -1.0f, 0.0f,
+        hl, -hl, hl, 0.0f, -1.0f, 0.0f,
+        -hl, -hl, -hl, 0.0f, -1.0f, 0.0f,
+        -hl, -hl, hl, 0.0f, -1.0f, 0.0f
     };
 
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glGenBuffers(1, &EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 }
