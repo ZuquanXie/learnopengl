@@ -61,19 +61,6 @@ void init(GLFWwindow* window)
     axisHelper = AxisHelper::AxisHelper(0.004f, 2.0f, 2.0f, 2.0f);
     // buffers
     createCubeVBO(cubeVBO, 1.0f);
-    // actor
-    actor = Shader("./resource/myCube.vert", "./resource/myCube.frag");
-    actorModel = glm::mat4(1.0f);
-    actorModel = glm::rotate(actorModel, glm::radians(45.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    glGenVertexArrays(1, &actorVAO);
-    glBindVertexArray(actorVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
     // lamp
     lamp = Shader("./resource/myLamp.vert", "./resource/myLamp.frag");
     lampPosition = glm::vec3(1.0f, 1.0f, 0.0f);
@@ -82,6 +69,36 @@ void init(GLFWwindow* window)
     lampModel = glm::scale(lampModel, glm::vec3(0.2f));
     glGenVertexArrays(1, &lampVAO);
     glBindVertexArray(lampVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    // actor
+    actor = Shader("./resource/myCube.vert", "./resource/myCube.frag");
+    actorModel = glm::mat4(1.0f);
+    actorModel = glm::rotate(actorModel, glm::radians(45.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    actor.use();
+    // material: white plastic
+    actor.setVec3("material.ambient", 0.0f, 0.0f, 0.0f);
+    actor.setVec3("material.diffuse", 0.1f, 0.35f, 0.1f);
+    actor.setVec3("material.specular", 0.45f, 0.55f, 0.45f);
+    actor.setFloat("material.shininess", 0.25f * 128.0f);
+    // material: green rubber
+    actor.setVec3("material.ambient", 0.0f, 0.05f, 0.0f);
+    actor.setVec3("material.diffuse", 0.4f, 0.5f, 0.4f);
+    actor.setVec3("material.specular", 0.04f, 0.7f, 0.04f);
+    actor.setFloat("material.shininess", 0.078125f * 128.0f);
+    // light
+    actor.setVec3("light.ambient", 1.0f, 1.0f, 1.0f);
+    actor.setVec3("light.diffuse", 1.0f, 1.0f, 1.0f);
+    actor.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+    glUseProgram(0);
+    glGenVertexArrays(1, &actorVAO);
+    glBindVertexArray(actorVAO);
     glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
@@ -117,7 +134,7 @@ void draw(GLFWwindow* window)
         glm::mat4 projectionMatrix = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 
         // clear
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // axis
@@ -137,9 +154,7 @@ void draw(GLFWwindow* window)
         // actor
         glm::mat3 viewForNormal = glm::mat3(glm::transpose(glm::inverse(viewMatrix * actorModel)));
         actor.use();
-        actor.setVec3("lightPosition", &lampPosition[0]);
-        actor.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-        actor.setVec3("objectColor", 0.0f, 1.0f, 0.0f);
+        actor.setVec3("light.position", &lampPosition[0]);
         actor.setMat4("model", &actorModel[0][0]);
         actor.setMat4("view", &viewMatrix[0][0]);
         actor.setMat4("projection", &projectionMatrix[0][0]);
