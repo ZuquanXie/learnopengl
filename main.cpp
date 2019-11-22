@@ -29,6 +29,9 @@ double lastMY = (double)SCR_HEIGHT / 2;
 
 AxisHelper::AxisHelper axisHelper;
 
+// texture
+GLuint tex1;
+
 // buffers
 GLuint cubeVBO;
 
@@ -61,6 +64,28 @@ void init(GLFWwindow* window)
     axisHelper = AxisHelper::AxisHelper(0.004f, 2.0f, 2.0f, 2.0f);
     // buffers
     createCubeVBO(cubeVBO, 1.0f);
+
+    // texture
+    int width, height, nrChannels;
+    glGenTextures(1, &tex1);
+    glBindTexture(GL_TEXTURE_2D, tex1);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    stbi_set_flip_vertically_on_load(true);
+    unsigned char* imgData = stbi_load("./resource/huitailang.jpg", &width, &height, &nrChannels, 0);
+    if (imgData)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, imgData);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        std::cout << "LOAD TEXTURE IMAGE FAILED" << std::endl;
+    }
+    stbi_image_free(imgData);
+
     // lamp
     lamp = Shader("./resource/myLamp.vert", "./resource/myLamp.frag");
     lampPosition = glm::vec3(1.0f, 1.0f, 0.0f);
@@ -70,9 +95,9 @@ void init(GLFWwindow* window)
     glGenVertexArrays(1, &lampVAO);
     glBindVertexArray(lampVAO);
     glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -82,28 +107,24 @@ void init(GLFWwindow* window)
     actorModel = glm::mat4(1.0f);
     actorModel = glm::rotate(actorModel, glm::radians(45.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     actor.use();
-    // material: white plastic
-    actor.setVec3("material.ambient", 0.0f, 0.0f, 0.0f);
-    actor.setVec3("material.diffuse", 0.1f, 0.35f, 0.1f);
-    actor.setVec3("material.specular", 0.45f, 0.55f, 0.45f);
-    actor.setFloat("material.shininess", 0.25f * 128.0f);
-    // material: green rubber
-    actor.setVec3("material.ambient", 0.0f, 0.05f, 0.0f);
-    actor.setVec3("material.diffuse", 0.4f, 0.5f, 0.4f);
-    actor.setVec3("material.specular", 0.04f, 0.7f, 0.04f);
-    actor.setFloat("material.shininess", 0.078125f * 128.0f);
+    // material
+    actor.setInt("material.diffuse", 0);
+    actor.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+    actor.setFloat("material.shininess", 32.0f);
     // light
-    actor.setVec3("light.ambient", 1.0f, 1.0f, 1.0f);
+    actor.setVec3("light.ambient", 0.1f, 0.1f, 0.1f);
     actor.setVec3("light.diffuse", 1.0f, 1.0f, 1.0f);
     actor.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
     glUseProgram(0);
     glGenVertexArrays(1, &actorVAO);
     glBindVertexArray(actorVAO);
     glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -148,6 +169,8 @@ void draw(GLFWwindow* window)
         lamp.setMat4("model", &lampModel[0][0]);
         lamp.setMat4("view", &viewMatrix[0][0]);
         lamp.setMat4("projection", &projectionMatrix[0][0]);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, tex1);
         glBindVertexArray(lampVAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
@@ -224,49 +247,49 @@ void mouseScrollCallback(GLFWwindow* window, double x, double y)
 void createCubeVBO(GLuint &VBO,  float size)
 {
     float hl = size / 2;
-    float vertices[6*6*6] = {
+    float vertices[8*6*6] = {
         // back
-        -hl, hl, -hl, 0.0f, 0.0f, -1.0f,
-        -hl, -hl, -hl, 0.0f, 0.0f, -1.0f,
-        hl, -hl, -hl, 0.0f, 0.0f, -1.0f,
-        -hl, hl, -hl, 0.0f, 0.0f, -1.0f,
-        hl, -hl, -hl, 0.0f, 0.0f, -1.0f,
-        hl, hl, -hl, 0.0f, 0.0f, -1.0f,
+        -hl, hl, -hl, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,
+        -hl, -hl, -hl, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,
+        hl, -hl, -hl, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f,
+        -hl, hl, -hl, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,
+        hl, -hl, -hl, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f,
+        hl, hl, -hl, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
         // front
-        hl, hl, hl, 0.0f, 0.0f, 1.0f,
-        hl, -hl, hl, 0.0f, 0.0f, 1.0f,
-        -hl, -hl, hl, 0.0f, 0.0f, 1.0f,
-        hl, hl, hl, 0.0f, 0.0f, 1.0f,
-        -hl, -hl, hl, 0.0f, 0.0f, 1.0f,
-        -hl, hl, hl, 0.0f, 0.0f, 1.0f,
+        hl, hl, hl, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
+        hl, -hl, hl, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+        -hl, -hl, hl, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
+        hl, hl, hl, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
+        -hl, -hl, hl, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
+        -hl, hl, hl, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
         // left
-        -hl, hl, hl, -1.0f, 0.0f, 0.0f,
-        -hl, -hl, hl, -1.0f, 0.0f, 0.0f,
-        -hl, -hl, -hl, -1.0f, 0.0f, 0.0f,
-        -hl, hl, hl, -1.0f, 0.0f, 0.0f,
-        -hl, -hl, -hl, -1.0f, 0.0f, 0.0f,
-        -hl, hl, -hl, -1.0f, 0.0f, 0.0f,
+        -hl, hl, hl, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+        -hl, -hl, hl, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+        -hl, -hl, -hl, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+        -hl, hl, hl, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+        -hl, -hl, -hl, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+        -hl, hl, -hl, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
         // right
-        hl, hl, -hl, 1.0f, 0.0f, 0.0f,
-        hl, -hl, -hl, 1.0f, 0.0f, 0.0f,
-        hl, -hl, hl, 1.0f, 0.0f, 0.0f,
-        hl, hl, -hl, 1.0f, 0.0f, 0.0f,
-        hl, -hl, hl, 1.0f, 0.0f, 0.0f,
-        hl, hl, hl, 1.0f, 0.0f, 0.0f,
+        hl, hl, -hl, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+        hl, -hl, -hl, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+        hl, -hl, hl, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+        hl, hl, -hl, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+        hl, -hl, hl, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+        hl, hl, hl, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
         // top
-        hl, hl, -hl, 0.0f, 1.0f, 0.0f,
-        hl, hl, hl, 0.0f, 1.0f, 0.0f,
-        -hl, hl, hl, 0.0f, 1.0f, 0.0f,
-        hl, hl, -hl, 0.0f, 1.0f, 0.0f,
-        -hl, hl, hl, 0.0f, 1.0f, 0.0f,
-        -hl, hl, -hl, 0.0f, 1.0f, 0.0f,
+        hl, hl, -hl, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+        hl, hl, hl, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+        -hl, hl, hl, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+        hl, hl, -hl, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+        -hl, hl, hl, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+        -hl, hl, -hl, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
         // bottom
-        hl, -hl, hl, 0.0f, -1.0f, 0.0f,
-        hl, -hl, -hl, 0.0f, -1.0f, 0.0f,
-        -hl, -hl, -hl, 0.0f, -1.0f, 0.0f,
-        hl, -hl, hl, 0.0f, -1.0f, 0.0f,
-        -hl, -hl, -hl, 0.0f, -1.0f, 0.0f,
-        -hl, -hl, hl, 0.0f, -1.0f, 0.0f
+        hl, -hl, hl, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+        hl, -hl, -hl, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+        -hl, -hl, -hl, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+        hl, -hl, hl, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+        -hl, -hl, -hl, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+        -hl, -hl, hl, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f
     };
 
     glGenBuffers(1, &VBO);
